@@ -1,0 +1,322 @@
+---
+title: "midterm"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+
+#read the csv into R
+```{r}
+dt<-read.csv("C:/Users/Administrator/Desktop/uci/winter/web&social/midterm/HighNote.csv", header = TRUE)
+head(dt)
+summary(dt)
+```
+
+#Summary statistics
+#the differences in the mean values of the variables, comparing the adopter and non-adapter subsamples
+```{r}
+library(dplyr)
+#dropping id from the data
+dt2<-dt[,-1]
+mean_adop<-dt2%>%group_by(dt2$adopter)%>%summarise_all("mean")
+
+
+
+print(mean_adop)
+```
+# Descriptive statistics
+```{r}
+library(psych)
+
+describeBy(dt2,group = dt2$adopter)
+
+```
+
+
+
+
+
+#the adopter group subscribers on avearage are( switched from Free to Fee) older, have more male, more friends with avearge friends age is larger than non-adopter group. Also, the adopter subscribers have hgiher proportion of male friends and more diverse friend and higher percentage of friends who are also adopters. 
+# therefore, peer influence and user engagement may affect users’ decisions to pay for a premium subscription.
+#Also, adopters are more engeaged with larger number of songs listened and more posts, playlists and shouts. 
+# what is more, HighNote has fewer users in US,UK and Germany than other countries. 
+
+
+
+
+# visualize how adopters and non-adopters (of the premium subscription service) differ from each other in terms of (i) demographics, (ii) peer influence, and (iii) user engagement. 
+```{r}
+library(ggplot2)
+
+# Demorgraphic difference
+#Gender VS Adopter
+demo_graph<-par(mfrow=c(1,3))
+ggplot(dt2,aes(x=factor(adopter),fill=factor(male)))+
+  geom_bar(position="fill")+
+  ggtitle("Gender VS Adopters")+xlab("Adopters")+ylab("Percent")
+#Age VS Adopter
+ggplot(dt2,aes(x=factor(adopter),age,fill=adopter))+
+  geom_boxplot(alpha=0.3)+
+  ggtitle("Age VS Adopters")+xlab("Adopters")+ylab("Age")+
+   theme(legend.position="none")
+
+#Country VS Adopter
+ggplot(dt2,aes(x=factor(adopter),fill=factor(good_country)))+
+  geom_bar(position="fill")+
+  ggtitle("Country VS Adopters")+xlab("Adopters")+ylab("Count")
+par(demo_graph)
+
+
+# As it shown on the graph below, adopters are more males, are older than non-adopters and more come from countries other than US, UK and Germany.
+```
+
+
+
+```{r}
+#Visualize peer influence
+#number of friends
+peer_graph<-par(mfrow=c(1,2)) 
+
+ggplot(mean_adop,aes(x=factor(adopter),friend_cnt,fill=factor(adopter)))+
+  geom_bar(stat="identity")+
+   ggtitle("Avearage Number of Friends")+xlab("Adopters")+ylab("Count")
+
+
+#number of friends who are adopters
+ggplot(mean_adop,aes(x=factor(adopter), subscriber_friend_cnt,fill=factor(adopter)))+
+  geom_bar(stat="identity")+
+   ggtitle("Number of Friends who are Premium Adopters")+xlab("Adopters")+ylab("Value")
+
+par(peer_graph)
+#Adopters have more friends and they have more friends who are premium subscribers. Therefore, there might have peer influence exists. 
+```
+
+#Engagement level data on activities performed when using the service, which include the number of songs the user has listened to, playlists created, “shouts” sent to friends, etc.
+```{r}
+#visualize user engagement
+#number of songs listened to
+par(myfrow=c(2,3))
+
+ggplot(mean_adop,aes(x=factor(adopter),songsListened,fill=factor(adopter)))+
+  geom_bar(stat="identity")+
+  coord_flip()+
+  ggtitle("Number of Songs ")+xlab("Adopters")+ylab("Value")+
+  scale_fill_manual(values = alpha(c("blue", "red"), .3))
+
+#number of tracks loved
+ggplot(mean_adop,aes(x=factor(adopter),lovedTracks,fill=factor(adopter)))+
+  geom_bar(stat="identity")+
+  ggtitle("Number of Tracks ")+xlab("Adopters")+ylab("Value")+
+  scale_fill_manual(values = alpha(c("yellow", "purple"), .3))
+
+#number of posts
+
+ggplot(mean_adop,aes(x=factor(adopter), posts,fill=factor(adopter)))+
+  geom_bar(stat="identity")+
+   ggtitle("Number of Posts ")+xlab("Adopters")+ylab("Mean")
+#number of playlist
+ggplot(mean_adop,aes(x=factor(adopter), playlists,fill=factor(adopter)))+
+  geom_bar(stat="identity")+
+   ggtitle("Number of Playlists ")+xlab("Adopters")+ylab("Mean")
+
+#number of shouts
+ggplot(mean_adop,aes(x=factor(adopter), shouts,fill=factor(adopter)))+
+  geom_bar(stat="identity")+
+   ggtitle("Number of Shouts ")+xlab("Adopters")+ylab("Mean")
+#tenure
+ggplot(mean_adop,aes(x=factor(adopter), tenure,fill=factor(adopter)))+
+  geom_bar(stat="identity")+
+   ggtitle("Tenure of users ")+xlab("Adopters")+ylab("Mean")
+
+#premium users on average have more songs listened, more tracks, posts, playlists,shouts than free users. Therefore, premium users might  be more engaged or more engaged users are more likely to be premium users. 
+```
+#Propensity score matching
+```{r}
+#test whether having susbscriber friends affects the likelihood of becoming an adopter
+dt2$test[dt$subscriber_friend_cnt=="0"]<-0
+dt2$test[dt$subscriber_friend_cnt!="0"]<-1
+library(MatchIt)
+library(dplyr)
+```
+
+```{r}
+dt2%>%group_by(test)%>%
+  summarise(mean_adopter=mean(adopter))
+with(dt2,t.test(adopter~test))
+```
+```{r}
+
+```
+
+
+#calculate the mean for each covariate by the 
+```{r}
+
+
+ dt2%>%group_by(test)%>%
+  summarise_all(funs(mean(.,na.rm=T)))
+```
+```{r}
+ecls_cov<-c("age","male","friend_cnt","avg_friend_age","avg_friend_male","friend_country_cnt","songsListened","lovedTracks","posts","playlists","shouts","adopter","tenure","good_country")
+lapply(ecls_cov, function(v) {
+    t.test(dt2[, v] ~ dt2[, 'test'])
+})
+```
+# as it showed, mean of "male" are not statistically distinguishable (p>0.05), so it will be left out from the PSM
+#propensity score matching
+```{r}
+
+m_ps<-glm(test~age+friend_cnt+avg_friend_age+avg_friend_male+friend_country_cnt+songsListened+lovedTracks+posts+playlists+shouts+adopter+tenure+good_country,family =binomial,data=dt2)
+
+summary(m_ps)
+
+```
+
+#calculate the propensity score
+```{r}
+prs_df<-data.frame(pr_score=predict(m_ps,type="response"),treatment=m_ps$model$test)
+head(prs_df)
+```
+#examing the region of common support
+
+```{r}
+labs <- paste("Actual Friends had:", c("one or more", "zero"))
+prs_df %>%
+  mutate(test = ifelse(treatment== 1, labs[1], labs[2])) %>%
+  ggplot(aes(x = pr_score)) +
+  geom_histogram(color = "white") +
+  facet_wrap(~test) +
+  xlab("Probability of having one or more friends") +
+  theme_bw()
+
+
+```
+
+#therefore, from the graph, we can see that for treatment group, there are many samples who should have more friends had zero friend; while there are many samples who should have zero friends had many friends, making our matching feasible. 
+
+
+
+#Executing a matching alogorithm
+```{r}
+mod_match<-matchit(test~age+friend_cnt+avg_friend_age+avg_friend_male+friend_country_cnt+songsListened+lovedTracks+posts+playlists+shouts+adopter+tenure+good_country,method="nearest",data=dt2)
+
+
+plot(mod_match)
+```
+#creat a dataframe containing only the matched observations
+```{r}
+dta_m<-match.data(mod_match)
+dim(dta_m)
+```
+
+#Inspection: difference-in-means
+```{r}
+HN_cov<-c("age","friend_cnt","avg_friend_age","avg_friend_male","friend_country_cnt","songsListened","lovedTracks","posts","playlists","shouts","adopter","tenure","good_country")
+dta_m %>%
+  group_by(test) %>%
+  select(one_of(HN_cov)) %>%
+  summarise_all(funs(mean))
+```
+
+
+
+
+```{r}
+lapply(HN_cov, function(v) {
+    t.test(dta_m[, v] ~ dta_m$test)
+})
+```
+
+
+
+
+#Estimating treatment effect
+```{r}
+with(dta_m,t.test(adopter~test))
+```
+
+
+```{r}
+glm_treat2 <- glm(adopter ~ test+age+friend_cnt+avg_friend_age+avg_friend_male+friend_country_cnt+songsListened+lovedTracks+posts+playlists+shouts+adopter+tenure+good_country, family=binomial, data = dta_m)
+summary(glm_treat2)
+```
+```{r}
+print(exp(glm_treat2$coefficients[1:14]))
+```
+
+
+
+
+
+#aftering doing propensity score matching, as the result shows,keeping other covariates constant, compared with users who have zero subscriber friend, users have one or more subsriber friends have 17% higher chance to be an adopter. 
+
+
+#Regression for the model
+```{r}
+#based on the visualization in part 2, variables to be included in the model could be:
+reg_val<-c( "male","subscriber_friend_cnt","good_country","friend_cnt","avg_friend_age","friend_country_cnt","songsListened","lovedTracks","posts","playlists","shouts","adopter")
+
+fit.glm <- glm(adopter ~ male+good_country+subscriber_friend_cnt+friend_cnt+avg_friend_age+friend_country_cnt+songsListened+lovedTracks+posts+playlists+shouts,family = binomial,data = dt2)
+
+summary(fit.glm)
+
+```
+
+#odds ratio
+
+```{r}
+print(exp(fit.glm$coefficients[1:12]))
+
+
+```
+
+# 1 unit increase in "male" (which is male) increases the odd of switching to Fee user by a factor of 1.56
+
+# 1 unit increase in "good_country" (which is users from US, UK and Germany) decreases the odd of switching to Fee user by a factor of 0.66
+
+# 1 unit increase in "subscriber_friend_cnt" (which is users have one or more subscriber friends) increases the odd of switching to Fee user by a factor of 1.56
+
+# 1 unit increase in "friend_cnt" decreases the odd of switching to Fee user by a factor of 1.1
+# 1 unit increase in "average_friend_age" increases the odd of switching to Fee user by a factor of 1.04
+
+# 1 unit increase in "friend_country_cnt" increases the odd of switching to Fee user by a factor of 1.04
+# 1 unit increase in "songsListened" increases the odd of switching to Fee user by a factor of 1
+# 1 unit increase in "lovedTracks" increases the odd of switching to Fee user by a factor of 1
+# 1 unit increase in "posts" increases the odd of switching to Fee user by a factor of 1
+# 1 unit increase in "playlists" increases the odd of switching to Fee user by a factor of 1.1
+# 1 unit increase in "shouts" increases the odd of switching to Fee user by a factor of 1
+
+
+
+
+
+
+
